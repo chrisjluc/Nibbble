@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Nibbble.iml" filepath="$PROJECT_DIR$/Nibbble.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Nibbble/Nibbble-Nibbble.iml" filepath="$PROJECT_DIR$/Nibbble/Nibbble-Nibbble.iml" />
+    </modules>
+  </component>
+</project>
+
