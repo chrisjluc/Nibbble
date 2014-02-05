@@ -1,12 +1,19 @@
 package com.chrisjluc.nibbble;
 
 import android.app.Activity;
+import android.app.WallpaperManager;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.util.DisplayMetrics;
 import android.view.Menu;
 import android.view.MenuItem;
 
 public class SettingActivity extends Activity {
+    public static final String KEY_WIDTH = "key_width";
+    public static final String KEY_HEIGHT = "key_height";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,7 +25,16 @@ public class SettingActivity extends Activity {
                     .add(R.id.container, new SettingFragment())
                     .commit();
         }
-        startService(new Intent(this,Wallpaper.class));
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor editor = sharedPref.edit();
+
+        DisplayMetrics metrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        float widthPixels = metrics.widthPixels;
+        float heightPixels = metrics.heightPixels;
+        editor.putFloat(KEY_WIDTH, widthPixels);
+        editor.putFloat(KEY_HEIGHT, heightPixels);
+        editor.commit();
     }
 
 
@@ -37,13 +53,11 @@ public class SettingActivity extends Activity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.action_settings) {
-            Intent intent = new Intent(this, Wallpaper.class);
-            if(startService(intent) != null){
-                stopService(intent);
-                startService(intent);
+            Intent intent = new Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER);
+            intent.putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
+                    new ComponentName(this, NibbleWallpaperService.class));
+            startActivity(intent);
             }
-            return true;
-        }
         return super.onOptionsItemSelected(item);
     }
 }

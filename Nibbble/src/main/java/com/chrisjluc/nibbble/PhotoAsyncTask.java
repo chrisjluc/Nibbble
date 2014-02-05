@@ -1,12 +1,12 @@
 package com.chrisjluc.nibbble;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.os.AsyncTask;
-import android.preference.PreferenceManager;
 import android.util.Log;
+import android.util.LruCache;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -32,30 +32,36 @@ import java.net.URL;
 /**
  * Created by chrisjluc on 2/4/2014.
  */
-public class PhotoAsyncTask extends AsyncTask<String,String,String> {
+public class PhotoAsyncTask extends AsyncTask<String, String, String> {
     private final static String URL_SHOTS = "http://api.dribbble.com/shots/";
     private final static String IMAGE_URL_KEY = "image_url";
     private final static int RANGE = 5000;
 
     private PhotoAsyncTaskListener photoAsyncTaskListener;
+    private LruCache<String, Bitmap> mMemoryCache;
 
     private String username;
     private int numberofImages;
     private Context context;
-    boolean isRandom;
+    private boolean isRandom;
+    private float displayWidth;
+    private float displayHeight;
 
     /**
-     *
      * @param context
      * @param photoAsyncTaskListener
      * @param numberofImages
      * @param isRandom
      * @param username
+     * @param mMemoryCache
      */
-    public PhotoAsyncTask(Context context, PhotoAsyncTaskListener photoAsyncTaskListener,int numberofImages, boolean isRandom, String username) {
+    public PhotoAsyncTask(Context context, PhotoAsyncTaskListener photoAsyncTaskListener, int numberofImages, boolean isRandom, String username, float displayWidth, float displayHeight, LruCache<String, Bitmap> mMemoryCache) {
         this.context = context;
         this.photoAsyncTaskListener = photoAsyncTaskListener;
         this.numberofImages = numberofImages;
+        this.displayWidth = displayWidth;
+        this.displayHeight = displayHeight;
+        this.mMemoryCache = mMemoryCache;
         //TODO: fix
         this.isRandom = true;
         this.username = username;
@@ -64,42 +70,62 @@ public class PhotoAsyncTask extends AsyncTask<String,String,String> {
     @Override
     protected String doInBackground(String... params) {
         String[] imageURLArray = new String[numberofImages];
-        if(isRandom){
-            for(int i = 0; i < numberofImages;i++){
+        if (isRandom) {
+            for (int i = 0; i < numberofImages; i++) {
                 String imageURL = null;
-                while(imageURL == null){
+                while (imageURL == null) {
                     String url = URL_SHOTS + Integer.toString(getRandomNumber());
                     String JSON = getJSONFromURL(url);
-                    imageURL = getKeyValue(IMAGE_URL_KEY,JSON);
+                    imageURL = getKeyValue(IMAGE_URL_KEY, JSON);
                 }
                 imageURLArray[i] = imageURL;
             }
-        }else{
+        } else {
             //TODO: when getting followers
         }
-        for(int i = 0; i < numberofImages;i++){
+        for (int i = 0; i < numberofImages; i++) {
             Bitmap bitmap = downloadImagesFromURL(imageURLArray[i]);
-            saveBitmap(bitmap,Wallpaper.FILE_NAME + Integer.toString(i));
+            Bitmap resizedBitmap = resizeBitmap(bitmap);
+            int bye = bitmap.getByteCount();
+            int newByte = resizedBitmap.getByteCount();
+            String fileName = Wallpaper.FILE_NAME + Integer.toString(i) + ".png";
+            saveBitmap(resizedBitmap, fileName);
+           // addBitmapToMemoryCache(fileName, resizedBitmap);
         }
 
         return null;
     }
-    private void saveBitmap(Bitmap bitmap, String fileName){
+
+    private Bitmap resizeBitmap(Bitmap bitmap) {
+        int bitmapHeight = bitmap.getHeight();
+        int newWidth = Math.round(bitmapHeight * displayWidth / displayHeight);
+        return Bitmap.createBitmap(bitmap,0,0,newWidth,bitmapHeight);
+    }
+
+    private void saveBitmap(Bitmap bitmap, String fileName) {
         FileOutputStream fos;
         try {
             fos = context.openFileOutput(fileName, Context.MODE_PRIVATE);
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
             fos.close();
-        }
-        catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private Bitmap downloadImagesFromURL(String image_url){
+    private void addBitmapToMemoryCache(String key, Bitmap bitmap) {
+        if (getBitmapFromMemCache(key) == null) {
+            mMemoryCache.put(key, bitmap);
+        }
+    }
+
+    private Bitmap getBitmapFromMemCache(String key) {
+        return mMemoryCache.get(key);
+    }
+
+    private Bitmap downloadImagesFromURL(String image_url) {
         Log.i("image_url", image_url);
         InputStream is = null;
         try {
@@ -110,8 +136,7 @@ public class PhotoAsyncTask extends AsyncTask<String,String,String> {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             try {
                 is.close();
             } catch (IOException e) {
@@ -123,14 +148,15 @@ public class PhotoAsyncTask extends AsyncTask<String,String,String> {
 
     /**
      * Checks for error message, returns null if error
+     *
      * @param key
      * @param JSON String for the Json
      * @return the value for the key
      */
-    private String getKeyValue(String key, String JSON){
+    private String getKeyValue(String key, String JSON) {
         try {
             JSONObject jsonObject = new JSONObject(JSON);
-                return jsonObject.getString(key);
+            return jsonObject.getString(key);
 
 
         } catch (JSONException e) {
@@ -140,11 +166,10 @@ public class PhotoAsyncTask extends AsyncTask<String,String,String> {
     }
 
     /**
-     *
      * @param URL
      * @return
      */
-    private String getJSONFromURL(String URL){
+    private String getJSONFromURL(String URL) {
         InputStream is = null;
 
         try {
@@ -184,9 +209,10 @@ public class PhotoAsyncTask extends AsyncTask<String,String,String> {
         return json;
     }
 
-    private int getRandomNumber(){
-        return (int) (Math.random()*RANGE) + 1;
+    private int getRandomNumber() {
+        return (int) (Math.random() * RANGE) + 1;
     }
+
     @Override
     protected void onPostExecute(String result) {
         photoAsyncTaskListener.onDownloadComplete();
