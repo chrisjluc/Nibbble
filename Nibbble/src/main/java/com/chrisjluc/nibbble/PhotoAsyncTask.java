@@ -1,9 +1,11 @@
 package com.chrisjluc.nibbble;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import org.apache.http.HttpEntity;
@@ -42,12 +44,21 @@ public class PhotoAsyncTask extends AsyncTask<String,String,String> {
     private Context context;
     boolean isRandom;
 
-    public PhotoAsyncTask(Context context, PhotoAsyncTaskListener photoAsyncTaskListener) {
+    /**
+     *
+     * @param context
+     * @param photoAsyncTaskListener
+     * @param numberofImages
+     * @param isRandom
+     * @param username
+     */
+    public PhotoAsyncTask(Context context, PhotoAsyncTaskListener photoAsyncTaskListener,int numberofImages, boolean isRandom, String username) {
         this.context = context;
         this.photoAsyncTaskListener = photoAsyncTaskListener;
-        this.numberofImages = 6;
+        this.numberofImages = numberofImages;
+        //TODO: fix
         this.isRandom = true;
-        this.username = "chrisjluc";
+        this.username = username;
     }
 
     @Override
@@ -89,6 +100,7 @@ public class PhotoAsyncTask extends AsyncTask<String,String,String> {
     }
 
     private Bitmap downloadImagesFromURL(String image_url){
+        Log.i("image_url", image_url);
         InputStream is = null;
         try {
             URL url = new URL(image_url);

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <ListPreference
+        android:key="pref_repetition_interval_ms"
+        android:title="Repetition Interval (ms)"
+        android:summary="5s"
+        android:dialogTitle="Choose repetition interval"
+        android:entries="@array/key_repetition_interval_ms"
+        android:entryValues="@array/repetition_interval_ms"
+        android:defaultValue="5000" />
+    <ListPreference
+        android:key="pref_number_images_to_cycle"
+        android:title="Numbers of images to cycle"
+        android:summary="5"
+        android:dialogTitle="Choose the number of images to cycle"
+        android:entries="@array/number_pictures_to_cycle"
+        android:entryValues="@array/number_pictures_to_cycle"
+        android:defaultValue="5" />
+    <CheckBoxPreference
+        android:key="pref_from_following"
+        android:summary="Check this and input your username"
+        android:title="Get photos from followings"
+        android:defaultValue="false" />
+    <EditTextPreference
+        android:dependency="pref_from_following"
+        android:title="Username"
+        android:key="pref_username"
+        android:dialogTitle="Please provide your username for Dribbble"
+        android:defaultValue=""
+        android:summary="No one currently logged in" />
+</PreferenceScreen>

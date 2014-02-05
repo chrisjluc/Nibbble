@@ -3,11 +3,11 @@ package com.chrisjluc.nibbble;
 import android.app.Service;
 import android.app.WallpaperManager;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -22,8 +22,8 @@ public class Wallpaper extends Service {
     public final static String FILE_NAME = "image_wallpaper_";
     private Timer mytimer;
     private int initialDelay = 100;
-    private int interval=1000;
-    private Drawable drawable;
+    private int interval;
+    private int numberofImages;
     private WallpaperManager wpm;
 
     private PhotoAsyncTaskListener downloadListener;
@@ -35,29 +35,35 @@ public class Wallpaper extends Service {
             @Override
             public void onDownloadComplete() {
                 setWallpapers();
-            };
+            }
+
+            ;
         };
-        mytimer=new Timer();
-        wpm=WallpaperManager.getInstance(Wallpaper.this);
-        new PhotoAsyncTask(this,downloadListener).execute();
+        mytimer = new Timer();
+        wpm = WallpaperManager.getInstance(Wallpaper.this);
+
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        this.interval = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_REPETITION, ""));
+        this.numberofImages = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_NUMBER_OF_IMAGES, ""));
+        new PhotoAsyncTask(this, downloadListener, numberofImages, !sharedPref.getBoolean(SettingFragment.KEY_PREF_PHOTOS_FROM_FOLLOWERS, true),sharedPref.getString(SettingFragment.KEY_PREF_USERNAME, "")).execute();
     }
 
-    private void setWallpapers(){
+    private void setWallpapers() {
         mytimer.schedule(new TimerTask() {
             int i = 0;
 
             @Override
             public void run() {
-                if(i > 5)
+                if (i >= numberofImages)
                     i = 0;
-                Bitmap wallpaper = loadBitmap(FILE_NAME+i);
+                Bitmap wallpaper = loadBitmap(FILE_NAME + i);
 
                 try {
                     wpm.setBitmap(wallpaper);
 
                 } catch (IOException e) {
                     e.printStackTrace();
-                }finally{
+                } finally {
                     i++;
                 }
 
@@ -77,7 +83,7 @@ public class Wallpaper extends Service {
         return null;
     }
 
-    private Bitmap loadBitmap(String fileName){
+    private Bitmap loadBitmap(String fileName) {
         Bitmap bitmap = null;
         FileInputStream fis;
         try {
@@ -85,11 +91,9 @@ public class Wallpaper extends Service {
             bitmap = BitmapFactory.decodeStream(fis);
             fis.close();
 
-        }
-        catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return bitmap;
