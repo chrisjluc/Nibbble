@@ -78,7 +78,7 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
                 JSONObject jsonObject = new JSONObject(json);
                 JSONArray shotsJSONArray = jsonObject.getJSONArray(KEY_SHOTS);
                 length = shotsJSONArray.length();
-                for (int i = 0; i < numberofImages; i++)
+                for (int i = 0; i < length; i++)
                     imageURLArray[i] = (String) shotsJSONArray.getJSONObject(i).get(KEY_IMAGE_URL);
                 int imageSpotsLeft = 0;
                 if (length < numberofImages) {
@@ -98,7 +98,7 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
             }
         }
         if (isValidUsername) {
-            for (int i = 0; i < numberofImages - 1; i++) {
+            for (int i = 0; i < numberofImages; i++) {
                 String fileName = NibbleWallpaperService.FILE_NAME + Integer.toString(i) + ".png";
                 if (imageURLArray[i] == null) {
                     Bitmap backupBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_launcher);
@@ -135,6 +135,7 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
         int bitmapWidth = bitmap.getWidth();
         int centerPixel = bitmapWidth / 2;
         int centerOffset = Math.round(bitmapHeight * displayWidth / displayHeight/2);
+
         return Bitmap.createBitmap(bitmap, centerPixel - centerOffset, 0, centerPixel + centerOffset, bitmapHeight);
     }
 

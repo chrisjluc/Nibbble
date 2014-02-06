@@ -17,18 +17,24 @@ import java.io.FileInputStream;
  */
 public class NibbleWallpaperService extends WallpaperService {
     public final static String FILE_NAME = "image_wallpaper_";
+    private Thread drawWallpaper;
+    private boolean running = false;
+
     @Override
     public Engine onCreateEngine() {
         return new WallpaperEngine();
     }
 
     private class WallpaperEngine extends Engine {
-        private int interval;
-        private int numberofImages;
+
+
         private PhotoAsyncTaskListener downloadListener = new PhotoAsyncTaskListener() {
             @Override
             public void onDownloadComplete() {
+//                if(drawWallpaper.isAlive())
                 drawWallpaper.start();
+                running = true;
+
             }
 
             @Override
@@ -36,35 +42,37 @@ public class NibbleWallpaperService extends WallpaperService {
                 Toast.makeText(getApplicationContext(), "Invalid username, please correct username", Toast.LENGTH_LONG).show();
             }
         };
-        public WallpaperEngine(){
 
+        public WallpaperEngine() {
             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(NibbleWallpaperService.this);
-            this.interval = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_REPETITION, ""));
-            this.numberofImages = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_NUMBER_OF_IMAGES, ""));
+            int numberofImages = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_NUMBER_OF_IMAGES, ""));
             new PhotoAsyncTask(NibbleWallpaperService.this, downloadListener, numberofImages,
                     sharedPref.getBoolean(SettingFragment.KEY_PREF_PHOTOS_FROM_FOLLOWERS, true),
                     sharedPref.getString(SettingFragment.KEY_PREF_USERNAME, ""),
                     sharedPref.getFloat(SettingActivity.KEY_WIDTH, 0),
-                    sharedPref.getFloat(SettingActivity.KEY_HEIGHT, 0),
-                    null).execute();
-        }
-        Thread drawWallpaper = new Thread(new Runnable() {
-            int i = 0;
-            @Override
-            public void run() {
-                try {
-                    while (true) {
-                        if(i>= numberofImages)
-                            i=0;
-                        drawFrame(i);
-                        i++;
-                        Thread.sleep(interval);
+                    sharedPref.getFloat(SettingActivity.KEY_HEIGHT, 0)).execute();
+            drawWallpaper = new Thread(new Runnable() {
+                int i = 0;
+
+                @Override
+                public void run() {
+                    try {
+                        while (true) {
+                            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(NibbleWallpaperService.this);
+                            int tInterval = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_REPETITION, ""));
+                            int tNumberofImages = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_NUMBER_OF_IMAGES, ""));
+                            if (i >= tNumberofImages)
+                                i = 0;
+                            drawFrame(i);
+                            i++;
+                            Thread.sleep(tInterval);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                } catch (Exception e) {
-                    //
                 }
-            }
-        });
+            });
+        }
 
         private void drawFrame(int i) {
             SurfaceHolder holder = getSurfaceHolder();
@@ -75,7 +83,10 @@ public class NibbleWallpaperService extends WallpaperService {
                 canvas = holder.lockCanvas();
 
                 if (canvas != null) {
-                    drawImage(canvas,i);
+                    drawImage(canvas, i);
+                } else {
+
+
                 }
             } finally {
                 if (canvas != null) {
@@ -84,20 +95,20 @@ public class NibbleWallpaperService extends WallpaperService {
             }
         }
 
-        private void drawImage(Canvas canvas,int i) {
+        private void drawImage(Canvas canvas, int i) {
             Bitmap bitmap;
             FileInputStream fis;
             try {
-                fis = NibbleWallpaperService.this.openFileInput(FILE_NAME + i +".png");
+                fis = NibbleWallpaperService.this.openFileInput(FILE_NAME + i + ".png");
                 bitmap = BitmapFactory.decodeStream(fis);
                 Matrix matrix = new Matrix();
                 int wallpaperDesiredMinimumHeight = getWallpaperDesiredMinimumHeight();
                 int bitmapHeight = bitmap.getHeight();
                 Float scale = (float) wallpaperDesiredMinimumHeight / bitmapHeight;
-                matrix.postScale(scale,scale);
-                canvas.drawBitmap(bitmap,matrix,null);
+                matrix.postScale(scale, scale);
+                canvas.drawBitmap(bitmap, matrix, null);
                 fis.close();
-            }catch(Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 

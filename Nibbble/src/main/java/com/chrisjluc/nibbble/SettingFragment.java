@@ -31,7 +31,6 @@ public class SettingFragment extends PreferenceFragment implements SharedPrefere
             numberImagePref.setSummary(sharedPreferences.getString(key, ""));
         } else if (key.equals(KEY_PREF_USERNAME)) {
             EditTextPreference usernamePref = (EditTextPreference) findPreference(key);
-            if (!sharedPreferences.getString(key, "").isEmpty())
                 usernamePref.setSummary(sharedPreferences.getString(key, ""));
         }
 
@@ -48,7 +47,9 @@ public class SettingFragment extends PreferenceFragment implements SharedPrefere
         ListPreference numberImagePref = (ListPreference) findPreference(KEY_PREF_NUMBER_OF_IMAGES);
         numberImagePref.setSummary(getPreferenceScreen().getSharedPreferences().getString(KEY_PREF_NUMBER_OF_IMAGES, ""));
         EditTextPreference usernamePref = (EditTextPreference) findPreference(KEY_PREF_USERNAME);
-        usernamePref.setSummary(getPreferenceScreen().getSharedPreferences().getString(KEY_PREF_USERNAME, ""));
+        String user = getPreferenceScreen().getSharedPreferences().getString(KEY_PREF_USERNAME, "");
+        if(!user.isEmpty())
+            usernamePref.setSummary(getPreferenceScreen().getSharedPreferences().getString(KEY_PREF_USERNAME, ""));
     }
 
     @Override
