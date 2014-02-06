@@ -40,7 +40,7 @@ public class SettingActivity extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        
+
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
@@ -52,17 +52,26 @@ public class SettingActivity extends Activity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id == R.id.action_start) {
-            Intent intent = new Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER);
-            intent.putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
-                    new ComponentName(this, NibbleWallpaperService.class));
-            startActivity(intent);
-            }else{
-
-            //Hack solution
-            System.exit(0);
-
+        switch (item.getItemId()) {
+            case R.id.action_start:
+                Intent intent = new Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER);
+                intent.putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
+                        new ComponentName(this, NibbleWallpaperService.class));
+                startActivity(intent);
+                NibbleWallpaperService.resumeThread();
+                break;
+            case R.id.action_stop:
+                NibbleWallpaperService.pauseThread();
+                break;
+            default:
+                System.exit(0);
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onDestroy() {
+        System.exit(0);
+        super.onDestroy();
     }
 }

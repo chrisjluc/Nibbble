@@ -5,8 +5,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.util.Log;
-import android.util.LruCache;
-import android.widget.Toast;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -78,15 +76,18 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
                 JSONObject jsonObject = new JSONObject(json);
                 JSONArray shotsJSONArray = jsonObject.getJSONArray(KEY_SHOTS);
                 length = shotsJSONArray.length();
-                for (int i = 0; i < length; i++)
-                    imageURLArray[i] = (String) shotsJSONArray.getJSONObject(i).get(KEY_IMAGE_URL);
                 int imageSpotsLeft = 0;
                 if (length < numberofImages) {
+                    for (int i = 0; i < length; i++)
+                        imageURLArray[i] = (String) shotsJSONArray.getJSONObject(i).get(KEY_IMAGE_URL);
                     imageSpotsLeft = numberofImages - length;
                     while (imageSpotsLeft > 0) {
                         imageURLArray[numberofImages - 1 - imageSpotsLeft] = getRandomImageUrl();
                         imageSpotsLeft--;
                     }
+                } else {
+                    for (int i = 0; i < numberofImages; i++)
+                        imageURLArray[i] = (String) shotsJSONArray.getJSONObject(i).get(KEY_IMAGE_URL);
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -100,13 +101,17 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
         if (isValidUsername) {
             for (int i = 0; i < numberofImages; i++) {
                 String fileName = NibbleWallpaperService.FILE_NAME + Integer.toString(i) + ".png";
+                Bitmap backupBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_launcher);
                 if (imageURLArray[i] == null) {
-                    Bitmap backupBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_launcher);
                     saveBitmap(backupBitmap, fileName);
                 } else {
+                    try{
                     Bitmap bitmap = downloadImagesFromURL(imageURLArray[i]);
                     Bitmap resizedBitmap = resizeBitmap(bitmap);
                     saveBitmap(resizedBitmap, fileName);
+                    }catch(Exception e){
+                        saveBitmap(backupBitmap, fileName);
+                    }
                 }
             }
         }
@@ -126,6 +131,7 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
 
     /**
      * Center images and crop
+     *
      * @param bitmap
      * @return
      */
@@ -134,7 +140,7 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
         int bitmapHeight = bitmap.getHeight();
         int bitmapWidth = bitmap.getWidth();
         int centerPixel = bitmapWidth / 2;
-        int centerOffset = Math.round(bitmapHeight * displayWidth / displayHeight/2);
+        int centerOffset = Math.round(bitmapHeight * displayWidth / displayHeight / 2);
 
         return Bitmap.createBitmap(bitmap, centerPixel - centerOffset, 0, centerPixel + centerOffset, bitmapHeight);
     }
@@ -165,7 +171,8 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
             e.printStackTrace();
         } finally {
             try {
-                is.close();
+                if (is != null)
+                    is.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -239,7 +246,7 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
 
     @Override
     protected void onPostExecute(String result) {
-        if(isValidUsername)
+        if (isValidUsername)
             photoAsyncTaskListener.onDownloadComplete();
         else
             photoAsyncTaskListener.notValidUserName();

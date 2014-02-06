@@ -9,5 +9,8 @@
     <item android:id="@+id/action_stop"
         android:title="Stop"
         android:orderInCategory="100"
+        android:showAsAction="never" /><item android:id="@+id/action_exit"
+        android:title="Force Quit"
+        android:orderInCategory="100"
         android:showAsAction="never" />
 </menu>
