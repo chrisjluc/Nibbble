@@ -52,12 +52,17 @@ public class SettingActivity extends Activity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_start) {
             Intent intent = new Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER);
             intent.putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
                     new ComponentName(this, NibbleWallpaperService.class));
             startActivity(intent);
-            }
+            }else{
+
+            //Hack solution
+            System.exit(0);
+
+        }
         return super.onOptionsItemSelected(item);
     }
 }
