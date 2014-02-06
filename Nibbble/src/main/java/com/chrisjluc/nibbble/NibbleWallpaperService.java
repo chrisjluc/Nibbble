@@ -8,6 +8,7 @@ import android.graphics.Matrix;
 import android.preference.PreferenceManager;
 import android.service.wallpaper.WallpaperService;
 import android.view.SurfaceHolder;
+import android.widget.Toast;
 
 import java.io.FileInputStream;
 
@@ -15,15 +16,13 @@ import java.io.FileInputStream;
  * Created by chrisjluc on 2/5/2014.
  */
 public class NibbleWallpaperService extends WallpaperService {
-
+    public final static String FILE_NAME = "image_wallpaper_";
     @Override
     public Engine onCreateEngine() {
         return new WallpaperEngine();
     }
 
     private class WallpaperEngine extends Engine {
-
-        public final static String FILE_NAME = "image_wallpaper_";
         private int interval;
         private int numberofImages;
         private PhotoAsyncTaskListener downloadListener = new PhotoAsyncTaskListener() {
@@ -32,14 +31,18 @@ public class NibbleWallpaperService extends WallpaperService {
                 drawWallpaper.start();
             }
 
-            ;
+            @Override
+            public void notValidUserName() {
+                Toast.makeText(getApplicationContext(), "Invalid username, please correct username", Toast.LENGTH_LONG).show();
+            }
         };
         public WallpaperEngine(){
+
             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(NibbleWallpaperService.this);
             this.interval = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_REPETITION, ""));
             this.numberofImages = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_NUMBER_OF_IMAGES, ""));
             new PhotoAsyncTask(NibbleWallpaperService.this, downloadListener, numberofImages,
-                    !sharedPref.getBoolean(SettingFragment.KEY_PREF_PHOTOS_FROM_FOLLOWERS, true),
+                    sharedPref.getBoolean(SettingFragment.KEY_PREF_PHOTOS_FROM_FOLLOWERS, true),
                     sharedPref.getString(SettingFragment.KEY_PREF_USERNAME, ""),
                     sharedPref.getFloat(SettingActivity.KEY_WIDTH, 0),
                     sharedPref.getFloat(SettingActivity.KEY_HEIGHT, 0),

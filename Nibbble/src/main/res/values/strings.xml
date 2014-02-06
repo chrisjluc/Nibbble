@@ -2,7 +2,7 @@
 <resources>
 
     <string name="app_name">Nibbble</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="retreiving_links">Retrieving image links...</string>
     <string name="action_settings">Settings</string>
 
 </resources>

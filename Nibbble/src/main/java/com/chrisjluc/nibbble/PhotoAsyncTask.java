@@ -3,10 +3,10 @@ package com.chrisjluc.nibbble;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.util.LruCache;
+import android.widget.Toast;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -16,6 +16,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -34,16 +35,19 @@ import java.net.URL;
  */
 public class PhotoAsyncTask extends AsyncTask<String, String, String> {
     private final static String URL_SHOTS = "http://api.dribbble.com/shots/";
-    private final static String IMAGE_URL_KEY = "image_url";
+    private final static String URL_FOLLOWING_BEGIN_STRING = "http://api.dribbble.com/players/";
+    private final static String URL_FOLLOWING_END_STRING = "/shots/following";
+    private final static String KEY_IMAGE_URL = "image_url";
+    private final static String KEY_SHOTS = "shots";
     private final static int RANGE = 5000;
 
     private PhotoAsyncTaskListener photoAsyncTaskListener;
     private LruCache<String, Bitmap> mMemoryCache;
-
     private String username;
     private int numberofImages;
     private Context context;
-    private boolean isRandom;
+    private boolean isValidUsername = true;
+    private boolean isFollowing;
     private float displayWidth;
     private float displayHeight;
 
@@ -51,55 +55,81 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
      * @param context
      * @param photoAsyncTaskListener
      * @param numberofImages
-     * @param isRandom
+     * @param isFollowing
      * @param username
      * @param mMemoryCache
      */
-    public PhotoAsyncTask(Context context, PhotoAsyncTaskListener photoAsyncTaskListener, int numberofImages, boolean isRandom, String username, float displayWidth, float displayHeight, LruCache<String, Bitmap> mMemoryCache) {
+    public PhotoAsyncTask(Context context, PhotoAsyncTaskListener photoAsyncTaskListener, int numberofImages, boolean isFollowing, String username, float displayWidth, float displayHeight, LruCache<String, Bitmap> mMemoryCache) {
         this.context = context;
         this.photoAsyncTaskListener = photoAsyncTaskListener;
         this.numberofImages = numberofImages;
         this.displayWidth = displayWidth;
         this.displayHeight = displayHeight;
-        this.mMemoryCache = mMemoryCache;
-        //TODO: fix
-        this.isRandom = true;
+        this.isFollowing = isFollowing;
         this.username = username;
     }
 
     @Override
     protected String doInBackground(String... params) {
         String[] imageURLArray = new String[numberofImages];
-        if (isRandom) {
-            for (int i = 0; i < numberofImages; i++) {
-                String imageURL = null;
-                while (imageURL == null) {
-                    String url = URL_SHOTS + Integer.toString(getRandomNumber());
-                    String JSON = getJSONFromURL(url);
-                    imageURL = getKeyValue(IMAGE_URL_KEY, JSON);
+        if (isFollowing) {
+            String url = URL_FOLLOWING_BEGIN_STRING + username + URL_FOLLOWING_END_STRING;
+            String json = getJSONFromURL(url);
+            int length = 0;
+            try {
+                JSONObject jsonObject = new JSONObject(json);
+                JSONArray shotsJSONArray = jsonObject.getJSONArray(KEY_SHOTS);
+                length = shotsJSONArray.length();
+                for (int i = 0; i < numberofImages; i++)
+                    imageURLArray[i] = (String) shotsJSONArray.getJSONObject(i).get(KEY_IMAGE_URL);
+                int imageSpotsLeft = 0;
+                if (length < numberofImages) {
+                    imageSpotsLeft = numberofImages - length;
+                    while (imageSpotsLeft > 0) {
+                        imageURLArray[numberofImages - 1 - imageSpotsLeft] = getRandomImageUrl();
+                        imageSpotsLeft--;
+                    }
                 }
-                imageURLArray[i] = imageURL;
+            } catch (JSONException e) {
+                e.printStackTrace();
+                isValidUsername = false;
             }
         } else {
-            //TODO: when getting followers
+            for (int i = 0; i < numberofImages; i++) {
+                imageURLArray[i] = getRandomImageUrl();
+            }
         }
-        for (int i = 0; i < numberofImages; i++) {
-            Bitmap bitmap = downloadImagesFromURL(imageURLArray[i]);
-            Bitmap resizedBitmap = resizeBitmap(bitmap);
-            int bye = bitmap.getByteCount();
-            int newByte = resizedBitmap.getByteCount();
-            String fileName = Wallpaper.FILE_NAME + Integer.toString(i) + ".png";
-            saveBitmap(resizedBitmap, fileName);
-           // addBitmapToMemoryCache(fileName, resizedBitmap);
+        if (isValidUsername) {
+            for (int i = 0; i < numberofImages - 1; i++) {
+                String fileName = NibbleWallpaperService.FILE_NAME + Integer.toString(i) + ".png";
+                if (imageURLArray[i] == null) {
+                    Bitmap backupBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_launcher);
+                    saveBitmap(backupBitmap, fileName);
+                } else {
+                    Bitmap bitmap = downloadImagesFromURL(imageURLArray[i]);
+                    Bitmap resizedBitmap = resizeBitmap(bitmap);
+                    saveBitmap(resizedBitmap, fileName);
+                }
+            }
         }
 
         return null;
     }
 
+    private String getRandomImageUrl() {
+        String imageURL = null;
+        while (imageURL == null) {
+            String url = URL_SHOTS + Integer.toString(getRandomNumber());
+            String JSON = getJSONFromURL(url);
+            imageURL = getKeyValue(KEY_IMAGE_URL, JSON);
+        }
+        return imageURL;
+    }
+
     private Bitmap resizeBitmap(Bitmap bitmap) {
         int bitmapHeight = bitmap.getHeight();
         int newWidth = Math.round(bitmapHeight * displayWidth / displayHeight);
-        return Bitmap.createBitmap(bitmap,0,0,newWidth,bitmapHeight);
+        return Bitmap.createBitmap(bitmap, 0, 0, newWidth, bitmapHeight);
     }
 
     private void saveBitmap(Bitmap bitmap, String fileName) {
@@ -113,16 +143,6 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private void addBitmapToMemoryCache(String key, Bitmap bitmap) {
-        if (getBitmapFromMemCache(key) == null) {
-            mMemoryCache.put(key, bitmap);
-        }
-    }
-
-    private Bitmap getBitmapFromMemCache(String key) {
-        return mMemoryCache.get(key);
     }
 
     private Bitmap downloadImagesFromURL(String image_url) {
@@ -157,8 +177,6 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
         try {
             JSONObject jsonObject = new JSONObject(JSON);
             return jsonObject.getString(key);
-
-
         } catch (JSONException e) {
             Log.e("JSON Parser", "Error parsing data " + e.toString());
         }
@@ -201,7 +219,6 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
             }
             is.close();
             json = sb.toString();
-            Log.i("JSON", json);
 
         } catch (Exception e) {
             Log.e("Buffer Error", "Error converting result " + e.toString());
@@ -215,7 +232,10 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
 
     @Override
     protected void onPostExecute(String result) {
-        photoAsyncTaskListener.onDownloadComplete();
+        if(isValidUsername)
+            photoAsyncTaskListener.onDownloadComplete();
+        else
+            photoAsyncTaskListener.notValidUserName();
     }
 
 }

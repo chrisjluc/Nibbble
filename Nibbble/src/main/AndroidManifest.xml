@@ -20,14 +20,6 @@
             </intent-filter>
         </activity>
         <service
-            android:name="com.chrisjluc.nibbble.Wallpaper"
-            >
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </service>
-        <service
             android:name="com.chrisjluc.nibbble.NibbleWallpaperService"
             android:permission="android.permission.BIND_WALLPAPER"
             >

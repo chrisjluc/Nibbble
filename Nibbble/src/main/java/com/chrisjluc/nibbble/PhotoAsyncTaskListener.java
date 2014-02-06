@@ -5,4 +5,6 @@ package com.chrisjluc.nibbble;
  */
 public interface PhotoAsyncTaskListener {
     public void onDownloadComplete();
+
+    public void notValidUserName();
 }

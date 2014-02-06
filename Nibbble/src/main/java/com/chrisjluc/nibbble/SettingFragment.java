@@ -31,7 +31,8 @@ public class SettingFragment extends PreferenceFragment implements SharedPrefere
             numberImagePref.setSummary(sharedPreferences.getString(key, ""));
         } else if (key.equals(KEY_PREF_USERNAME)) {
             EditTextPreference usernamePref = (EditTextPreference) findPreference(key);
-            usernamePref.setSummary(sharedPreferences.getString(key, ""));
+            if (!sharedPreferences.getString(key, "").isEmpty())
+                usernamePref.setSummary(sharedPreferences.getString(key, ""));
         }
 
     }
