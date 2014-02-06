@@ -42,7 +42,6 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
     private final static int RANGE = 5000;
 
     private PhotoAsyncTaskListener photoAsyncTaskListener;
-    private LruCache<String, Bitmap> mMemoryCache;
     private String username;
     private int numberofImages;
     private Context context;
@@ -57,9 +56,8 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
      * @param numberofImages
      * @param isFollowing
      * @param username
-     * @param mMemoryCache
      */
-    public PhotoAsyncTask(Context context, PhotoAsyncTaskListener photoAsyncTaskListener, int numberofImages, boolean isFollowing, String username, float displayWidth, float displayHeight, LruCache<String, Bitmap> mMemoryCache) {
+    public PhotoAsyncTask(Context context, PhotoAsyncTaskListener photoAsyncTaskListener, int numberofImages, boolean isFollowing, String username, float displayWidth, float displayHeight) {
         this.context = context;
         this.photoAsyncTaskListener = photoAsyncTaskListener;
         this.numberofImages = numberofImages;
@@ -126,10 +124,18 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
         return imageURL;
     }
 
+    /**
+     * Center images and crop
+     * @param bitmap
+     * @return
+     */
     private Bitmap resizeBitmap(Bitmap bitmap) {
+        //Center images and crop
         int bitmapHeight = bitmap.getHeight();
-        int newWidth = Math.round(bitmapHeight * displayWidth / displayHeight);
-        return Bitmap.createBitmap(bitmap, 0, 0, newWidth, bitmapHeight);
+        int bitmapWidth = bitmap.getWidth();
+        int centerPixel = bitmapWidth / 2;
+        int centerOffset = Math.round(bitmapHeight * displayWidth / displayHeight/2);
+        return Bitmap.createBitmap(bitmap, centerPixel - centerOffset, 0, centerPixel + centerOffset, bitmapHeight);
     }
 
     private void saveBitmap(Bitmap bitmap, String fileName) {
