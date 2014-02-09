@@ -2,8 +2,6 @@
 <resources>
 
     <string-array name="repetition_interval_ms">
-        <item>10</item>
-        <item>100</item>
         <item>1000</item>
         <item>2000</item>
         <item>3000</item>
@@ -22,8 +20,6 @@
         <item>600000</item>
     </string-array>
     <string-array name="key_repetition_interval_ms">
-        <item>0.01s</item>
-        <item>0.1s</item>
         <item>1s</item>
         <item>2s</item>
         <item>3s</item>
@@ -57,6 +53,5 @@
         <item>30</item>
         <item>40</item>
         <item>50</item>
-        <item>80</item>
     </string-array>
 </resources>

@@ -18,7 +18,7 @@ import java.io.FileInputStream;
 public class NibbleWallpaperService extends WallpaperService {
     public final static String FILE_NAME = "image_wallpaper_";
     private static boolean running = true;
-    private boolean hasData = false;
+    private static boolean hasData = false;
 
     @Override
     public Engine onCreateEngine() {
@@ -27,13 +27,14 @@ public class NibbleWallpaperService extends WallpaperService {
 
     private class WallpaperEngine extends Engine {
         private Thread drawWallpaper;
+        private boolean isSurfaceReady = false;
         private PhotoAsyncTaskListener downloadListener = new PhotoAsyncTaskListener() {
             @Override
             public void onDownloadComplete() {
                 if (!drawWallpaper.isAlive()) {
                     drawWallpaper.start();
                 }
-                toggleHasData();
+                setHasData(true);
             }
 
             @Override
@@ -48,14 +49,7 @@ public class NibbleWallpaperService extends WallpaperService {
         };
 
         public WallpaperEngine() {
-            if (hasData) {
-                toggleHasData();
-                if (drawWallpaper == null)
-                    initThread();
-                if (!drawWallpaper.isAlive()) {
-                    drawWallpaper.start();
-                }
-            } else {
+            if (!hasData) {
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(NibbleWallpaperService.this);
                 int numberofImages = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_NUMBER_OF_IMAGES, ""));
                 new PhotoAsyncTask(NibbleWallpaperService.this, downloadListener, numberofImages,
@@ -64,33 +58,43 @@ public class NibbleWallpaperService extends WallpaperService {
                         sharedPref.getFloat(SettingActivity.KEY_WIDTH, 0),
                         sharedPref.getFloat(SettingActivity.KEY_HEIGHT, 0)).execute();
                 initThread();
+            } else {
+                if (drawWallpaper == null)
+                    initThread();
+                if (!drawWallpaper.isAlive()) {
+                    drawWallpaper.start();
+                }
             }
         }
 
         private void initThread() {
             drawWallpaper = new Thread(new Runnable() {
-                int imageCount = 0;
+                int imageIndex = 0;
                 final int waitTime = 1000;
-                int timeImageDisplay = 0;
+                int timeDisplayed = 0;
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(NibbleWallpaperService.this);
 
                 @Override
                 public void run() {
                     try {
                         //Draw the inital frame
-                        drawFrame(imageCount);
+                        drawFrame(imageIndex);
                         while (true) {
-
+                            if (!running){
+                                timeDisplayed = 0;
+                            }
                             while (!running) ;
-                            int tInterval = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_REPETITION, ""));
-                            int tNumberofImages = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_NUMBER_OF_IMAGES, ""));
-                            if (timeImageDisplay >= tInterval) {
-                                drawFrame(imageCount);
-                                if (++imageCount >= tNumberofImages)
-                                    imageCount = 0;
-                                timeImageDisplay = 0;
+
+                            int mRepetitionTime = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_REPETITION_TIME, ""));
+                            int mNumberOfImages = Integer.parseInt(sharedPref.getString(SettingFragment.KEY_PREF_NUMBER_OF_IMAGES, ""));
+                            if (timeDisplayed >= mRepetitionTime) {
+                                while(!isSurfaceReady);
+                                drawFrame(imageIndex);
+                                if (++imageIndex >= mNumberOfImages)
+                                    imageIndex = 0;
+                                timeDisplayed = 0;
                             } else
-                                timeImageDisplay += waitTime;
+                                timeDisplayed += waitTime;
                             Thread.sleep(waitTime);
                         }
                     } catch (Exception e) {
@@ -101,32 +105,28 @@ public class NibbleWallpaperService extends WallpaperService {
         }
 
         private void drawFrame(int i) {
-            synchronized (this) {
                 SurfaceHolder holder = getSurfaceHolder();
-
                 Canvas canvas = null;
-
                 try {
-                    canvas = holder.lockCanvas();
-
-                    if (canvas != null)
-                        drawImage(canvas, i);
-
+                    synchronized (holder){
+                        canvas = holder.lockCanvas();
+                        if (canvas != null)
+                            drawImage(canvas, i);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
                     if (canvas != null)
                         holder.unlockCanvasAndPost(canvas);
                 }
-            }
         }
 
 
-        private void drawImage(Canvas canvas, int i) {
+        private void drawImage(Canvas canvas, int index) {
             Bitmap bitmap;
             FileInputStream fis;
             try {
-                fis = NibbleWallpaperService.this.openFileInput(FILE_NAME + i + ".png");
+                fis = NibbleWallpaperService.this.openFileInput(FILE_NAME + index);
                 bitmap = BitmapFactory.decodeStream(fis);
                 Matrix matrix = new Matrix();
                 int wallpaperDesiredMinimumHeight = getWallpaperDesiredMinimumHeight();
@@ -148,28 +148,27 @@ public class NibbleWallpaperService extends WallpaperService {
 
         @Override
         public void onSurfaceCreated(SurfaceHolder holder) {
+            isSurfaceReady = true;
             super.onSurfaceCreated(holder);
         }
 
         @Override
         public void onSurfaceDestroyed(SurfaceHolder holder) {
+            isSurfaceReady = false;
             super.onSurfaceDestroyed(holder);
         }
-    }
 
-    protected static void pauseThread() {
-        running = false;
     }
+        protected static void pauseThread() {
+            running = false;
+        }
 
-    protected static void resumeThread() {
-        running = true;
-    }
+        protected static void resumeThread() {
+            running = true;
+        }
 
-    private void toggleHasData() {
-        if (hasData) {
-            hasData = false;
-        } else
-            hasData = true;
+    protected static void setHasData(boolean hasData1){
+        hasData = hasData1;
     }
 
 }

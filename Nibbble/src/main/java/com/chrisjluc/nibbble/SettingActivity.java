@@ -25,9 +25,10 @@ public class SettingActivity extends Activity {
                     .add(R.id.container, new SettingFragment())
                     .commit();
         }
+
+        //Saving display width and height in preferences
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor editor = sharedPref.edit();
-
         DisplayMetrics metrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
         float widthPixels = metrics.widthPixels;
@@ -51,13 +52,14 @@ public class SettingActivity extends Activity {
                 Intent intent = new Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER);
                 intent.putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
                         new ComponentName(this, NibbleWallpaperService.class));
+                NibbleWallpaperService.setHasData(false);
                 startActivity(intent);
                 NibbleWallpaperService.resumeThread();
                 break;
             case R.id.action_stop:
                 NibbleWallpaperService.pauseThread();
                 break;
-            default:
+            case R.id.action_exit:
                 System.exit(0);
         }
         return super.onOptionsItemSelected(item);

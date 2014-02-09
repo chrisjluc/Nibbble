@@ -10,7 +10,7 @@ import android.preference.PreferenceFragment;
  * Created by chrisjluc on 2/4/2014.
  */
 public class SettingFragment extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener {
-    public static final String KEY_PREF_REPETITION = "pref_repetition_interval_ms";
+    public static final String KEY_PREF_REPETITION_TIME = "pref_repetition_interval_ms";
     public static final String KEY_PREF_NUMBER_OF_IMAGES = "pref_number_images_to_cycle";
     public static final String KEY_PREF_PHOTOS_FROM_FOLLOWERS = "pref_from_following";
     public static final String KEY_PREF_USERNAME = "pref_username";
@@ -23,7 +23,7 @@ public class SettingFragment extends PreferenceFragment implements SharedPrefere
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals(KEY_PREF_REPETITION)) {
+        if (key.equals(KEY_PREF_REPETITION_TIME)) {
             ListPreference repetitionPref = (ListPreference) findPreference(key);
             repetitionPref.setSummary(sharedPreferences.getString(key, ""));
         } else if (key.equals(KEY_PREF_NUMBER_OF_IMAGES)) {
@@ -41,9 +41,9 @@ public class SettingFragment extends PreferenceFragment implements SharedPrefere
         super.onResume();
         getPreferenceScreen().getSharedPreferences()
                 .registerOnSharedPreferenceChangeListener(this);
-        ListPreference repetitionPref = (ListPreference) findPreference(KEY_PREF_REPETITION);
+        ListPreference repetitionPref = (ListPreference) findPreference(KEY_PREF_REPETITION_TIME);
         repetitionPref.setSummary(getPreferenceScreen().getSharedPreferences()
-                .getString(KEY_PREF_REPETITION, ""));
+                .getString(KEY_PREF_REPETITION_TIME, ""));
         ListPreference numberImagePref = (ListPreference) findPreference(KEY_PREF_NUMBER_OF_IMAGES);
         numberImagePref.setSummary(getPreferenceScreen().getSharedPreferences().getString(KEY_PREF_NUMBER_OF_IMAGES, ""));
         EditTextPreference usernamePref = (EditTextPreference) findPreference(KEY_PREF_USERNAME);
