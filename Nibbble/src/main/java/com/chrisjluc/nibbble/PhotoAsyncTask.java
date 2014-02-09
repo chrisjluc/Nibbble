@@ -43,6 +43,7 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
     private String username;
     private int numberofImages;
     private Context context;
+    private boolean isError = false;
     private boolean isValidUsername = true;
     private boolean isFollowing;
     private float displayWidth;
@@ -71,16 +72,21 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
         if (isFollowing) {
             String url = URL_FOLLOWING_BEGIN_STRING + username + URL_FOLLOWING_END_STRING;
             String json = getJSONFromURL(url);
-            int length = 0;
+            JSONArray shotsJSONArray = null;
             try {
                 JSONObject jsonObject = new JSONObject(json);
-                JSONArray shotsJSONArray = jsonObject.getJSONArray(KEY_SHOTS);
-                length = shotsJSONArray.length();
-                int imageSpotsLeft = 0;
+                shotsJSONArray = jsonObject.getJSONArray(KEY_SHOTS);
+            } catch (JSONException e) {
+                e.printStackTrace();
+                isValidUsername = false;
+                return null;
+            }
+            int length = shotsJSONArray.length();
+            try {
                 if (length < numberofImages) {
                     for (int i = 0; i < length; i++)
                         imageURLArray[i] = (String) shotsJSONArray.getJSONObject(i).get(KEY_IMAGE_URL);
-                    imageSpotsLeft = numberofImages - length;
+                    int imageSpotsLeft = numberofImages - length;
                     while (imageSpotsLeft > 0) {
                         imageURLArray[numberofImages - 1 - imageSpotsLeft] = getRandomImageUrl();
                         imageSpotsLeft--;
@@ -91,7 +97,7 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
-                isValidUsername = false;
+                isError = true;
             }
         } else {
             for (int i = 0; i < numberofImages; i++) {
@@ -105,12 +111,13 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
                 if (imageURLArray[i] == null) {
                     saveBitmap(backupBitmap, fileName);
                 } else {
-                    try{
-                    Bitmap bitmap = downloadImagesFromURL(imageURLArray[i]);
-                    Bitmap resizedBitmap = resizeBitmap(bitmap);
-                    saveBitmap(resizedBitmap, fileName);
-                    }catch(Exception e){
+                    try {
+                        Bitmap bitmap = downloadImagesFromURL(imageURLArray[i]);
+                        Bitmap resizedBitmap = resizeBitmap(bitmap);
+                        saveBitmap(resizedBitmap, fileName);
+                    } catch (Exception e) {
                         saveBitmap(backupBitmap, fileName);
+                        isError = true;
                     }
                 }
             }
@@ -135,22 +142,29 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
      * @param bitmap
      * @return
      */
-    private Bitmap resizeBitmap(Bitmap bitmap) {
+    private Bitmap resizeBitmap(Bitmap bitmap) throws Exception {
         //Center images and crop
-        int bitmapHeight = bitmap.getHeight();
-        int bitmapWidth = bitmap.getWidth();
-        int centerPixel = bitmapWidth / 2;
-        int centerOffset = Math.round(bitmapHeight * displayWidth / displayHeight / 2);
+        int centerPixel,centerOffset,bitmapHeight;
+        try {
+            bitmapHeight = bitmap.getHeight();
+            int bitmapWidth = bitmap.getWidth();
+            centerPixel = bitmapWidth / 2;
+            centerOffset = Math.round(bitmapHeight * displayWidth / displayHeight / 2);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new Exception();
+        }
 
         return Bitmap.createBitmap(bitmap, centerPixel - centerOffset, 0, centerPixel + centerOffset, bitmapHeight);
     }
 
-    private void saveBitmap(Bitmap bitmap, String fileName) {
+    private void saveBitmap(Bitmap bitmap, String fileName){
         FileOutputStream fos;
         try {
             fos = context.openFileOutput(fileName, Context.MODE_PRIVATE);
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
             fos.close();
+            return;
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -158,7 +172,7 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
         }
     }
 
-    private Bitmap downloadImagesFromURL(String image_url) {
+    private Bitmap downloadImagesFromURL(String image_url) throws Exception {
         Log.i("image_url", image_url);
         InputStream is = null;
         try {
@@ -175,9 +189,10 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
                     is.close();
             } catch (IOException e) {
                 e.printStackTrace();
+                isError = true;
             }
         }
-        return null;
+        throw new Exception();
     }
 
     /**
@@ -246,10 +261,12 @@ public class PhotoAsyncTask extends AsyncTask<String, String, String> {
 
     @Override
     protected void onPostExecute(String result) {
-        if (isValidUsername)
-            photoAsyncTaskListener.onDownloadComplete();
+        if (isError)
+            photoAsyncTaskListener.toastError();
+        else if(!isValidUsername)
+            photoAsyncTaskListener.toastInvalidUsername();
         else
-            photoAsyncTaskListener.notValidUserName();
+            photoAsyncTaskListener.onDownloadComplete();
     }
 
 }
